@@ -18,9 +18,10 @@ async def apply_settings(ctx, msg):
         raise wire.ProcessError("No setting provided")
 
     if msg.homescreen is not None:
-        if len(msg.homescreen) > storage.HOMESCREEN_MAXSIZE:
-            raise wire.DataError("Homescreen is too complex")
-        await require_confirm_change_homescreen(ctx)
+        ui.display.clear()
+        ui.display.image(0, 0, msg.homescreen)
+        ui.display.refresh()
+        return Success(message="OK")
 
     if msg.label is not None:
         await require_confirm_change_label(ctx, msg.label)
