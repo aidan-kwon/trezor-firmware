@@ -2,6 +2,9 @@ from micropython import const
 
 from trezor import io, loop, ui
 
+if False:
+    from typing import Optional
+
 SWIPE_UP = const(0x01)
 SWIPE_DOWN = const(0x02)
 SWIPE_LEFT = const(0x04)
@@ -15,23 +18,23 @@ _SWIPE_TRESHOLD = const(30)
 
 
 class Swipe(ui.Control):
-    def __init__(self, directions=SWIPE_ALL, area=None):
+    def __init__(self, directions: int = SWIPE_ALL, area: ui.Area = None) -> None:
         if area is None:
             area = (0, 0, ui.WIDTH, ui.HEIGHT)
         self.area = area
         self.directions = directions
-        self.start_x = None
-        self.start_y = None
-        self.light_origin = None
+        self.start_x = None  # type: Optional[int]
+        self.start_y = None  # type: Optional[int]
+        self.light_origin = None  # type: Optional[int]
         self.light_target = ui.BACKLIGHT_NONE
 
-    def on_touch_start(self, x, y):
+    def on_touch_start(self, x: int, y: int) -> None:
         if ui.in_area(self.area, x, y):
             self.start_x = x
             self.start_y = y
             self.light_origin = ui.BACKLIGHT_NORMAL
 
-    def on_touch_move(self, x, y):
+    def on_touch_move(self, x: int, y: int) -> None:
         if self.start_x is None:
             return  # not started in our area
 
@@ -61,7 +64,7 @@ class Swipe(ui.Control):
                     )
                 )
 
-    def on_touch_end(self, x, y):
+    def on_touch_end(self, x: int, y: int) -> None:
         if self.start_x is None:
             return  # not started in our area
 
@@ -96,10 +99,10 @@ class Swipe(ui.Control):
         self.start_x = None
         self.start_y = None
 
-    def on_swipe(self, swipe):
+    def on_swipe(self, swipe: int) -> None:
         raise ui.Result(swipe)
 
-    def __iter__(self):
+    def __iter__(self) -> loop.Task:  # type: ignore
         try:
             touch = loop.wait(io.TOUCH)
             while True:

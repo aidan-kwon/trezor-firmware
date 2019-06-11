@@ -6,6 +6,10 @@ from trezor.ui import display
 from trezor.ui.button import Button, ButtonClear, ButtonConfirm
 from trezor.ui.swipe import SWIPE_HORIZONTAL, SWIPE_LEFT, Swipe
 
+if False:
+    from typing import List, Iterable, Optional
+    from trezor.ui.button import ButtonContent, ButtonStyleStateType
+
 SPACE = res.load(ui.ICON_SPACE)
 
 KEYBOARD_KEYS = (
@@ -16,13 +20,13 @@ KEYBOARD_KEYS = (
 )
 
 
-def digit_area(i):
+def digit_area(i: int) -> ui.Area:
     if i == 9:  # 0-position
         i = 10  # display it in the middle
     return ui.grid(i + 3)  # skip the first line
 
 
-def render_scrollbar(page):
+def render_scrollbar(page: int) -> None:
     BBOX = const(240)
     SIZE = const(8)
     pages = len(KEYBOARD_KEYS)
@@ -43,36 +47,44 @@ def render_scrollbar(page):
 
 
 class KeyButton(Button):
-    def __init__(self, area, content, keyboard):
+    def __init__(
+        self, area: ui.Area, content: ButtonContent, keyboard: "PassphraseKeyboard"
+    ) -> None:
         self.keyboard = keyboard
         super().__init__(area, content)
 
-    def on_click(self):
+    def on_click(self) -> None:
         self.keyboard.on_key_click(self)
 
-    def get_text_content(self):
-        if self.content is SPACE:
+    def get_text_content(self) -> str:
+        if isinstance(self.content, str):
+            return self.content
+        elif self.content is SPACE:
             return " "
         else:
-            return self.content
+            raise TypeError
 
 
-def key_buttons(keys, keyboard):
+def key_buttons(
+    keys: Iterable[ButtonContent], keyboard: "PassphraseKeyboard"
+) -> List[KeyButton]:
     return [KeyButton(digit_area(i), k, keyboard) for i, k in enumerate(keys)]
 
 
 class Input(Button):
-    def __init__(self, area, content):
+    def __init__(self, area: ui.Area, content: str) -> None:
         super().__init__(area, content)
         self.pending = False
         self.disable()
 
-    def edit(self, content, pending):
+    def edit(self, content: str, pending: bool) -> None:
         self.content = content
         self.pending = pending
         self.repaint = True
 
-    def render_content(self, s, ax, ay, aw, ah):
+    def render_content(
+        self, s: ButtonStyleStateType, ax: int, ay: int, aw: int, ah: int
+    ) -> None:
         text_style = s.text_style
         fg_color = s.fg_color
         bg_color = s.bg_color
@@ -98,16 +110,16 @@ class Input(Button):
             cx = tx + width + 1
             display.bar(cx, ty - 18, 2, 22, fg_color)
 
-    def on_click(self):
+    def on_click(self) -> None:
         pass
 
 
 class Prompt(ui.Control):
-    def __init__(self, text):
+    def __init__(self, text: str) -> None:
         self.text = text
         self.repaint = True
 
-    def on_render(self):
+    def on_render(self) -> None:
         if self.repaint:
             display.bar(0, 0, ui.WIDTH, 48, ui.BG)
             display.text_center(ui.WIDTH // 2, 32, self.text, ui.BOLD, ui.GREY, ui.BG)
@@ -118,7 +130,7 @@ CANCELLED = object()
 
 
 class PassphraseKeyboard(ui.Layout):
-    def __init__(self, prompt, max_length, page=1):
+    def __init__(self, prompt: str, max_length: int, page: int = 1) -> None:
         self.prompt = Prompt(prompt)
         self.max_length = max_length
         self.page = page
@@ -126,17 +138,17 @@ class PassphraseKeyboard(ui.Layout):
         self.input = Input(ui.grid(0, n_x=1, n_y=6), "")
 
         self.back = Button(ui.grid(12), res.load(ui.ICON_BACK), ButtonClear)
-        self.back.on_click = self.on_back_click
+        self.back.on_click = self.on_back_click  # type: ignore
         self.back.disable()
 
         self.done = Button(ui.grid(14), res.load(ui.ICON_CONFIRM), ButtonConfirm)
-        self.done.on_click = self.on_confirm
+        self.done.on_click = self.on_confirm  # type: ignore
 
         self.keys = key_buttons(KEYBOARD_KEYS[self.page], self)
-        self.pending_button = None
+        self.pending_button = None  # type: Optional[KeyButton]
         self.pending_index = 0
 
-    def dispatch(self, event, x, y):
+    def dispatch(self, event: int, x: int, y: int) -> None:
         if self.input.content:
             self.input.dispatch(event, x, y)
         else:
@@ -149,7 +161,7 @@ class PassphraseKeyboard(ui.Layout):
         if event == ui.RENDER:
             render_scrollbar(self.page)
 
-    def on_back_click(self):
+    def on_back_click(self) -> None:
         # Backspace was clicked.  If we have any content in the input, let's delete
         # the last character.  Otherwise cancel.
         content = self.input.content
@@ -158,7 +170,7 @@ class PassphraseKeyboard(ui.Layout):
         else:
             self.on_cancel()
 
-    def on_key_click(self, button: KeyButton):
+    def on_key_click(self, button: KeyButton) -> None:
         # Key button was clicked.  If this button is pending, let's cycle the
         # pending character in input.  If not, let's just append the first
         # character.
@@ -174,11 +186,11 @@ class PassphraseKeyboard(ui.Layout):
         else:
             self.edit(prefix + button_text[index])
 
-    def on_timeout(self):
+    def on_timeout(self) -> None:
         # Timeout occurred, let's just reset the pending marker.
         self.edit(self.input.content)
 
-    def edit(self, content: str, button: Button = None, index: int = 0):
+    def edit(self, content: str, button: KeyButton = None, index: int = 0) -> None:
         if len(content) > self.max_length:
             return
 
@@ -195,7 +207,7 @@ class PassphraseKeyboard(ui.Layout):
             self.back.disable()
             self.prompt.repaint = True
 
-    async def handle_input(self):
+    async def handle_input(self) -> None:
         touch = loop.wait(io.TOUCH)
         timeout = loop.sleep(1000 * 1000 * 1)
         spawn_touch = loop.spawn(touch)
@@ -214,7 +226,7 @@ class PassphraseKeyboard(ui.Layout):
             else:
                 self.on_timeout()
 
-    async def handle_paging(self):
+    async def handle_paging(self) -> None:
         swipe = await Swipe(SWIPE_HORIZONTAL)
         if swipe == SWIPE_LEFT:
             self.page = (self.page + 1) % len(KEYBOARD_KEYS)
@@ -226,33 +238,33 @@ class PassphraseKeyboard(ui.Layout):
         self.input.repaint = True
         self.prompt.repaint = True
 
-    def on_cancel(self):
+    def on_cancel(self) -> None:
         raise ui.Result(CANCELLED)
 
-    def on_confirm(self):
+    def on_confirm(self) -> None:
         raise ui.Result(self.input.content)
 
-    def create_tasks(self):
+    def create_tasks(self) -> Iterable[loop.Task]:
         return self.handle_input(), self.handle_rendering(), self.handle_paging()
 
 
 class PassphraseSource(ui.Layout):
-    def __init__(self, content):
+    def __init__(self, content: ui.Control) -> None:
         self.content = content
 
         self.device = Button(ui.grid(8, n_y=4, n_x=4, cells_x=4), "Device")
-        self.device.on_click = self.on_device
+        self.device.on_click = self.on_device  # type: ignore
 
         self.host = Button(ui.grid(12, n_y=4, n_x=4, cells_x=4), "Host")
-        self.host.on_click = self.on_host
+        self.host.on_click = self.on_host  # type: ignore
 
-    def dispatch(self, event, x, y):
+    def dispatch(self, event: int, x: int, y: int) -> None:
         self.content.dispatch(event, x, y)
         self.device.dispatch(event, x, y)
         self.host.dispatch(event, x, y)
 
-    def on_device(self):
+    def on_device(self) -> None:
         raise ui.Result(PassphraseSourceType.DEVICE)
 
-    def on_host(self):
+    def on_host(self) -> None:
         raise ui.Result(PassphraseSourceType.HOST)

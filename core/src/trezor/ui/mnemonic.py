@@ -3,6 +3,10 @@ from trezor.crypto import bip39
 from trezor.ui import display
 from trezor.ui.button import Button, ButtonClear, ButtonMono, ButtonMonoConfirm
 
+if False:
+    from typing import Optional
+    from trezor.ui.button import ButtonContent, ButtonStyleStateType
+
 
 def compute_mask(text: str) -> int:
     mask = 0
@@ -15,23 +19,25 @@ def compute_mask(text: str) -> int:
 
 
 class KeyButton(Button):
-    def __init__(self, area, content, keyboard):
+    def __init__(
+        self, area: ui.Area, content: ButtonContent, keyboard: "MnemonicKeyboard"
+    ):
         self.keyboard = keyboard
         super().__init__(area, content)
 
-    def on_click(self):
+    def on_click(self) -> None:
         self.keyboard.on_key_click(self)
 
 
 class InputButton(Button):
-    def __init__(self, area, content, word):
+    def __init__(self, area: ui.Area, content: str, word: str) -> None:
         super().__init__(area, content)
         self.word = word
         self.pending = False
-        self.icon = None
+        self.icon = None  # type: Optional[str]
         self.disable()
 
-    def edit(self, content, word, pending):
+    def edit(self, content: str, word: str, pending: bool) -> None:
         self.word = word
         self.content = content
         self.pending = pending
@@ -52,7 +58,9 @@ class InputButton(Button):
             self.disable()
             self.icon = None
 
-    def render_content(self, s, ax, ay, aw, ah):
+    def render_content(
+        self, s: ButtonStyleStateType, ax: int, ay: int, aw: int, ah: int
+    ) -> None:
         text_style = s.text_style
         fg_color = s.fg_color
         bg_color = s.bg_color
@@ -61,11 +69,6 @@ class InputButton(Button):
         t = self.content  # input content
         w = self.word[len(t) :]  # suggested word
         i = self.icon  # rendered icon
-
-        if not t:
-            # render prompt
-            display.text(20, 40, self.prompt, ui.BOLD, ui.GREY, ui.BG)
-            return
 
         tx = ax + 24  # x-offset of the content
         ty = ay + ah // 2 + 8  # y-offset of the content
@@ -87,11 +90,11 @@ class InputButton(Button):
 
 
 class Prompt(ui.Control):
-    def __init__(self, prompt):
+    def __init__(self, prompt: str) -> None:
         self.prompt = prompt
         self.repaint = True
 
-    def on_render(self):
+    def on_render(self) -> None:
         if self.repaint:
             display.bar(0, 8, ui.WIDTH, 60, ui.BG)
             display.text(20, 40, self.prompt, ui.BOLD, ui.GREY, ui.BG)
@@ -99,15 +102,15 @@ class Prompt(ui.Control):
 
 
 class MnemonicKeyboard(ui.Layout):
-    def __init__(self, prompt):
+    def __init__(self, prompt: str) -> None:
         self.prompt = Prompt(prompt)
 
         icon_back = res.load(ui.ICON_BACK)
         self.back = Button(ui.grid(0, n_x=4, n_y=4), icon_back, ButtonClear)
-        self.back.on_click = self.on_back_click
+        self.back.on_click = self.on_back_click  # type: ignore
 
         self.input = InputButton(ui.grid(1, n_x=4, n_y=4, cells_x=3), "", "")
-        self.input.on_click = self.on_input_click
+        self.input.on_click = self.on_input_click  # type: ignore
 
         self.keys = [
             KeyButton(ui.grid(i + 3, n_y=4), k, self)
@@ -115,10 +118,10 @@ class MnemonicKeyboard(ui.Layout):
                 ("abc", "def", "ghi", "jkl", "mno", "pqr", "stu", "vwx", "yz")
             )
         ]
-        self.pending_button = None
+        self.pending_button = None  # type: Optional[KeyButton]
         self.pending_index = 0
 
-    def dispatch(self, event: int, x: int, y: int):
+    def dispatch(self, event: int, x: int, y: int) -> None:
         for btn in self.keys:
             btn.dispatch(event, x, y)
         if self.input.content:
@@ -127,11 +130,11 @@ class MnemonicKeyboard(ui.Layout):
         else:
             self.prompt.dispatch(event, x, y)
 
-    def on_back_click(self):
+    def on_back_click(self) -> None:
         # Backspace was clicked, let's delete the last character of input.
         self.edit(self.input.content[:-1])
 
-    def on_input_click(self):
+    def on_input_click(self) -> None:
         # Input button was clicked.  If the content matches the suggested word,
         # let's confirm it, otherwise just auto-complete.
         content = self.input.content
@@ -142,7 +145,7 @@ class MnemonicKeyboard(ui.Layout):
         else:
             self.edit(word)
 
-    def on_key_click(self, btn: Button):
+    def on_key_click(self, btn: Button) -> None:
         # Key button was clicked.  If this button is pending, let's cycle the
         # pending character in input.  If not, let's just append the first
         # character.
@@ -154,7 +157,7 @@ class MnemonicKeyboard(ui.Layout):
             content = self.input.content + btn.content[0]
         self.edit(content, btn, index)
 
-    def on_timeout(self):
+    def on_timeout(self) -> None:
         # Timeout occurred.  If we can auto-complete current input, let's just
         # reset the pending marker.  If not, input is invalid, let's backspace
         # the last character.
@@ -163,11 +166,11 @@ class MnemonicKeyboard(ui.Layout):
         else:
             self.edit(self.input.content[:-1])
 
-    def on_confirm(self, word):
+    def on_confirm(self, word: str) -> None:
         # Word was confirmed by the user.
         raise ui.Result(word)
 
-    def edit(self, content: str, button: KeyButton = None, index: int = 0):
+    def edit(self, content: str, button: KeyButton = None, index: int = 0) -> None:
         self.pending_button = button
         self.pending_index = index
 
@@ -190,7 +193,7 @@ class MnemonicKeyboard(ui.Layout):
         if not self.input.content:
             self.prompt.repaint = True
 
-    async def handle_input(self):
+    async def handle_input(self) -> None:
         touch = loop.wait(io.TOUCH)
         timeout = loop.sleep(1000 * 1000 * 1)
         spawn_touch = loop.spawn(touch)
