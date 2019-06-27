@@ -237,4 +237,16 @@ enum MessageType {
     MessageType_BinanceOrderMsg = 707 [(wire_in) = true];
     MessageType_BinanceCancelMsg = 708 [(wire_in) = true];
     MessageType_BinanceSignedTx = 709 [(wire_out) = true];
+
+    // Klaytn
+    MessageType_KlaytnGetPublicKey = 850 [(wire_in) = true];
+    MessageType_KlaytnPublicKey = 851 [(wire_out) = true];
+    MessageType_KlaytnGetAddress = 856 [(wire_in) = true];
+    MessageType_KlaytnAddress = 857 [(wire_out) = true];
+    MessageType_KlaytnSignTx = 858 [(wire_in) = true];
+    MessageType_KlaytnTxRequest = 859 [(wire_out) = true];
+    MessageType_KlaytnTxAck = 860 [(wire_in) = true];
+    MessageType_KlaytnSignMessage = 864 [(wire_in) = true];
+    MessageType_KlaytnVerifyMessage = 865 [(wire_in) = true];
+    MessageType_KlaytnMessageSignature = 866 [(wire_out) = true];
 }

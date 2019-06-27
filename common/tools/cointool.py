@@ -726,7 +726,6 @@ def dump(
         coins_dict = {k: v for k, v in coins.items() if k in include_type}
     else:
         coins_dict = {k: v for k, v in coins.items() if k not in exclude_type}
-
     # filter individual coins
     include_filters = [f.split("=", maxsplit=1) for f in filter]
     exclude_filters = [f.split("=", maxsplit=1) for f in filter_exclude]

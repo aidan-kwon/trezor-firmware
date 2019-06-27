@@ -200,5 +200,17 @@
         },
         "wallet": {},
         "blockchain_link": {}
+    },
+    {
+        "name": "Klaytn",
+        "shortcut": "KLY",
+        "slip44": 8217,
+        "curve": "secp256k1",
+        "decimals": 8,
+        "links": {
+            "Homepage": "https://klytn.com"
+        },
+        "wallet": {},
+        "blockchain_link": {}
     }
 ]

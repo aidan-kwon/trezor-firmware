@@ -5,7 +5,7 @@ DEST=trezorlib/coins.json
 
 BUILD_COINS_AT="../common/tools/cointool.py dump \
     --list --support \
-    --include-type=bitcoin \
+    --include-type=misc \
     --exclude=icon \
     -o \
 "

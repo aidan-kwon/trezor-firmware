@@ -29360,6 +29360,24 @@
                 }
             ]
         },
+        "misc:KLY": {
+            "links": {
+                "Github": "https://github.com/klaytn/klaytn",
+                "Homepage": "https://klaytn.com"
+            },
+            "marketcap_usd": 11058637745,
+            "name": "Klaytn",
+            "shortcut": "KLY",
+            "t1_enabled": "yes",
+            "t2_enabled": "yes",
+            "type": "coin",
+            "wallet": [
+                {
+                    "name": "Klaytn-test wallet",
+                    "url": "https://cypress.klaytnwallet.com"
+                }
+            ]
+        },
         "nem:BREEZE": {
             "links": {
                 "Homepage": "https://breeze.chat"
