@@ -72,6 +72,7 @@ def sign_tx(
     if tx_type is not None:
         msg.tx_type = tx_type
 
+    print(msg)
     response = client.call(msg)
 
     while response.data_length is not None:

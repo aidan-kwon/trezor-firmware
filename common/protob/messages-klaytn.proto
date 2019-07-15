@@ -56,17 +56,21 @@ message KlaytnAddress {
  * @next KlaytnTxRequest
  * @next Failure
  */
+
 message KlaytnSignTx {
     repeated uint32 address_n = 1;          // BIP-32 path to derive the key from master node
     optional bytes nonce = 2;               // <=256 bit unsigned big endian
-    optional bytes gas_price = 3;           // <=256 bit unsigned big endian (in wei)
+    optional bytes gas_price = 3;           // <=256 bit unsigned big endian (in peb)
     optional bytes gas_limit = 4;           // <=256 bit unsigned big endian
-    optional string to = 11;                // recipient address
-    optional bytes value = 6;               // <=256 bit unsigned big endian (in wei)
+    optional bytes tx_type = 5;             // <=256 bit unsigned big endian
+    optional bytes value = 6;               // <=256 bit unsigned big endian (in peb)
     optional bytes data_initial_chunk = 7;  // The initial data chunk (<= 1024 bytes)
     optional uint32 data_length = 8;        // Length of transaction payload
-    optional uint32 chain_id = 9;           // Chain Id for EIP 155
-    optional uint32 tx_type = 10;           // (only for Wanchain)
+    optional uint32 code_format = 9;
+    optional uint32 chain_id = 10;          // Chain Id (default 8217)
+    optional uint32 fee_ratio = 11;         // valid range (1 ~ 99)
+    optional string to = 12;                // recipient address
+    optional bool human_readable = 13;
 }
 
 /**

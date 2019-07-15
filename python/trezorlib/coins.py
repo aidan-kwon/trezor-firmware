@@ -40,7 +40,7 @@ except Exception as e:
 
 slip44 = {name: coin["slip44"] for name, coin in by_name.items()}
 tx_api = {
-    name: TxApi(coin)
-    for name, coin in by_name.items()
-    if coin["blockbook"] or coin["bitcore"]
+    # name: TxApi(coin)
+    # for name, coin in by_name.items()
+    # if coin["blockbook"] or coin["bitcore"]
 }

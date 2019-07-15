@@ -21,9 +21,11 @@ import apps.ripple
 import apps.cardano
 import apps.tezos
 import apps.eos
+import apps.klaytn
 
 if __debug__:
     import apps.debug
+    print("debug mode")
 else:
     import apps.webauthn
 
@@ -40,6 +42,7 @@ apps.ripple.boot()
 apps.cardano.boot()
 apps.tezos.boot()
 apps.eos.boot()
+apps.klaytn.boot()
 if __debug__:
     apps.debug.boot()
 else:
@@ -57,5 +60,6 @@ utils.set_mode_unprivileged()
 # run main event loop and specify which screen is the default
 from apps.homescreen.homescreen import homescreen
 
+print("START!! with Klaytn")
 workflow.startdefault(homescreen)
 loop.run()

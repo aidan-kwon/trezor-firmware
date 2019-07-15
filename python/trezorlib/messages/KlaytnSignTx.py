@@ -18,23 +18,29 @@ class KlaytnSignTx(p.MessageType):
         nonce: bytes = None,
         gas_price: bytes = None,
         gas_limit: bytes = None,
-        to: str = None,
+        tx_type: bytes = None,
         value: bytes = None,
         data_initial_chunk: bytes = None,
         data_length: int = None,
+        code_format: int = None,
         chain_id: int = None,
-        tx_type: int = None,
+        fee_ratio: int = None,
+        to: str = None,
+        human_readable: bool = None,
     ) -> None:
         self.address_n = address_n if address_n is not None else []
         self.nonce = nonce
         self.gas_price = gas_price
         self.gas_limit = gas_limit
-        self.to = to
+        self.tx_type = tx_type
         self.value = value
         self.data_initial_chunk = data_initial_chunk
         self.data_length = data_length
+        self.code_format = code_format
         self.chain_id = chain_id
-        self.tx_type = tx_type
+        self.fee_ratio = fee_ratio
+        self.to = to
+        self.human_readable = human_readable
 
     @classmethod
     def get_fields(cls):
@@ -43,10 +49,13 @@ class KlaytnSignTx(p.MessageType):
             2: ('nonce', p.BytesType, 0),
             3: ('gas_price', p.BytesType, 0),
             4: ('gas_limit', p.BytesType, 0),
-            11: ('to', p.UnicodeType, 0),
+            5: ('tx_type', p.BytesType, 0),
             6: ('value', p.BytesType, 0),
             7: ('data_initial_chunk', p.BytesType, 0),
             8: ('data_length', p.UVarintType, 0),
-            9: ('chain_id', p.UVarintType, 0),
-            10: ('tx_type', p.UVarintType, 0),
+            9: ('code_format', p.UVarintType, 0),
+            10: ('chain_id', p.UVarintType, 0),
+            11: ('fee_ratio', p.UVarintType, 0),
+            12: ('to', p.UnicodeType, 0),
+            13: ('human_readable', p.BoolType, 0),
         }

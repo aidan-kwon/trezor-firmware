@@ -358,6 +358,12 @@ class ProtocolMixin(object):
     ethereum_sign_message = MovedTo("ethereum.sign_message")
     ethereum_verify_message = MovedTo("ethereum.verify_message")
 
+    # Klaytn functionality
+    klaytn_get_address = MovedTo("klaytn.get_address")
+    klaytn_sign_tx = MovedTo("klaytn.sign_tx")
+    klaytn_sign_message = MovedTo("klaytn.sign_message")
+    klaytn_verify_message = MovedTo("klaytn.verify_message")
+
     # Lisk functionality
     lisk_get_address = MovedTo("lisk.get_address")
     lisk_get_public_key = MovedTo("lisk.get_public_key")

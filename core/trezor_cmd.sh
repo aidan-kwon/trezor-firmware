@@ -27,7 +27,8 @@ if [[ ! "${TREZOR_SRC}" ]]; then echo "expecting TREZOR_SRC"; exit 0; fi
 
 
 # defaults
-PYOPT="${PYOPT:-1}"
+PYOPT=0
+# PYOPT="${PYOPT:-1}"
 HEAPSIZE="${HEAPSIZE:-20M}"
 
 TREZOR_PROFILE="${TREZOR_PROFILE:-/var/tmp}"
