@@ -12,5 +12,6 @@ def boot():
     wire.add(MessageType.KlaytnGetAddress, __name__, "get_address", ns)
     wire.add(MessageType.KlaytnGetPublicKey, __name__, "get_public_key", ns)
     wire.add(MessageType.KlaytnSignTx, __name__, "sign_tx", ns)
+    wire.add(MessageType.KlaytnSignTxAsFeePayer, __name__, "sign_tx_as_fee_payer", ns)
     wire.add(MessageType.KlaytnSignMessage, __name__, "sign_message", ns)
     wire.add(MessageType.KlaytnVerifyMessage, __name__, "verify_message")

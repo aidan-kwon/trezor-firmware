@@ -102,6 +102,76 @@ def sign_tx(
 
     return response.signature_v, response.signature_r, response.signature_s
 
+
+@session
+def sign_tx_as_fee_payer(
+        client,
+        n,
+        sender,
+        nonce,
+        gas_price,
+        gas_limit,
+        value=None,
+        to=None,
+        chain_id=None,
+        tx_type=None,
+        human_readable=None,
+        code_format=None,
+        data=None,
+        fee_ratio=None,
+):
+
+    msg = proto.KlaytnSignTxAsFeePayer(
+        address_n=n,
+        nonce=int_to_big_endian(nonce),
+        gas_price=int_to_big_endian(gas_price),
+        gas_limit=int_to_big_endian(gas_limit),
+    )
+
+    msg.sender = sender
+
+    if to is not None:
+        msg.to = to
+
+    if tx_type is not None:
+        msg.tx_type = tx_type
+
+    if human_readable is not None:
+        msg.human_readable = human_readable
+
+    if code_format is not None:
+        msg.code_format = code_format
+
+    if data is not None:
+        msg.data_length = len(data)
+        # data, chunk = data[1024:], data[:1024]
+        # msg.data_initial_chunk = chunk
+        msg.data_initial_chunk = data
+
+    if value is not None:
+        msg.value = int_to_big_endian(value)
+
+    if chain_id is not None:
+        msg.chain_id = chain_id
+
+    if fee_ratio is not None:
+        msg.fee_ratio = fee_ratio
+
+    response = client.call(msg)
+
+    # while response.data_length is not None:
+    #     data_length = response.data_length
+    #     data, chunk = data[data_length:], data[:data_length]
+    #     response = client.call(proto.KlaytnTxAck(data_chunk=chunk))
+
+    # https://github.com/trezor/trezor-core/pull/311
+    # only signature bit returned. recalculate signature_v
+    if response.signature_v <= 1:
+        response.signature_v += 2 * chain_id + 35
+
+    return response.signature_v, response.signature_r, response.signature_s
+
+
 @expect(proto.KlaytnMessageSignature)
 def sign_message(client, n, message):
     message = normalize_nfc(message)

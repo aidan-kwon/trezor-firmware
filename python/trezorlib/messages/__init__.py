@@ -112,6 +112,7 @@ from .KlaytnMessageSignature import KlaytnMessageSignature
 from .KlaytnPublicKey import KlaytnPublicKey
 from .KlaytnSignMessage import KlaytnSignMessage
 from .KlaytnSignTx import KlaytnSignTx
+from .KlaytnSignTxAsFeePayer import KlaytnSignTxAsFeePayer
 from .KlaytnTxAck import KlaytnTxAck
 from .KlaytnTxRequest import KlaytnTxRequest
 from .KlaytnVerifyMessage import KlaytnVerifyMessage

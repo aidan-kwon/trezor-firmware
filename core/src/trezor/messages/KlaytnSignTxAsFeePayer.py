@@ -9,12 +9,13 @@ if __debug__:
         List = None  # type: ignore
 
 
-class KlaytnSignTx(p.MessageType):
-    MESSAGE_WIRE_TYPE = 858
+class KlaytnSignTxAsFeePayer(p.MessageType):
+    MESSAGE_WIRE_TYPE = 859
 
     def __init__(
         self,
         address_n: List[int] = None,
+        sender: bytes = None,
         nonce: bytes = None,
         gas_price: bytes = None,
         gas_limit: bytes = None,
@@ -29,6 +30,7 @@ class KlaytnSignTx(p.MessageType):
         human_readable: bool = None,
     ) -> None:
         self.address_n = address_n if address_n is not None else []
+        self.sender = sender
         self.nonce = nonce
         self.gas_price = gas_price
         self.gas_limit = gas_limit
@@ -46,6 +48,7 @@ class KlaytnSignTx(p.MessageType):
     def get_fields(cls):
         return {
             1: ('address_n', p.UVarintType, p.FLAG_REPEATED),
+            2: ('sender', p.BytesType, 0),
             3: ('nonce', p.BytesType, 0),
             4: ('gas_price', p.BytesType, 0),
             5: ('gas_limit', p.BytesType, 0),

@@ -4,7 +4,7 @@ import protobuf as p
 
 
 class KlaytnVerifyMessage(p.MessageType):
-    MESSAGE_WIRE_TYPE = 865
+    MESSAGE_WIRE_TYPE = 863
 
     def __init__(
         self,

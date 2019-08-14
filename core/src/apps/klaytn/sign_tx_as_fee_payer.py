@@ -22,8 +22,7 @@ TX_TYPE_BASIC = 0
 TX_TYPE_FEE_DELEGATION = 1
 TX_TYPE_PARTIAL_FEE_DELEGATION = 2
 
-
-async def sign_tx(ctx, msg, keychain):
+async def sign_tx_as_fee_payer(ctx, msg, keychain):
     msg = sanitize(msg) #TODO refine `sanitize` to support more fields
     check(msg) #TODO refine check to support ~
     await paths.validate_path(ctx, validate_full_path, keychain, msg.address_n, CURVE)
@@ -31,9 +30,11 @@ async def sign_tx(ctx, msg, keychain):
     node = keychain.derive(msg.address_n)
     seckey = node.private_key()
     public_key = secp256k1.publickey(seckey, False)  # uncompressed
-    sender_address = sha3_256(public_key[1:], keccak=True).digest()[12:]
+    fee_payer_address = sha3_256(public_key[1:], keccak=True).digest()[12:]
 
     recipient = address.bytes_from_address(msg.to)
+    # sender = address.bytes_from_address(msg.sender)
+    sender = msg.sender
     # TODO- check sender and real sender addr
 
     value = int.from_bytes(msg.value, "big")
@@ -62,66 +63,50 @@ async def sign_tx(ctx, msg, keychain):
 
     sha = HashWriter(sha3_256(keccak=True))
 
-    if msg.tx_type is None:
-        sha.extend(rlp.encode_length(total_length, True))  # total length
+    basic_type = to_basic_type(msg.tx_type)
+    attributes = [msg.tx_type, msg.nonce, msg.gas_price, msg.gas_limit]
 
-        for field in (msg.nonce, msg.gas_price, msg.gas_limit, recipient, msg.value):
-            sha.extend(rlp.encode(field))
+    # TxTypeValueTransfer(0x08)
+    if basic_type == 0x08:
+        attributes += [recipient, msg.value, sender]
+        if to_fee_type(msg.tx_type) == TX_TYPE_PARTIAL_FEE_DELEGATION:
+            attributes.append(msg.fee_ratio)
 
-        if data_left == 0:
-            sha.extend(rlp.encode(data))
-        else:
-            sha.extend(rlp.encode_length(data_total, False))
-            sha.extend(rlp.encode(data, False))
+    # TxTypeValueTransferMemo(0x10), TxTypeSmartContractExecution(0x30)
+    elif basic_type == 0x10 or basic_type == 0x30:
+        attributes += [recipient, msg.value, sender, data]
+        if to_fee_type(msg.tx_type) == TX_TYPE_PARTIAL_FEE_DELEGATION:
+            attributes.append(msg.fee_ratio)
 
-        if msg.chain_id:
-            sha.extend(rlp.encode(msg.chain_id))
-            sha.extend(rlp.encode(0))
-            sha.extend(rlp.encode(0))
+    # TxTypeSmartContractDeploy(0x28)
+    elif basic_type == 0x28:
+        human_readable = 0x00
+        if msg.human_readable:
+            human_readable = 0x01
+        attributes += [recipient, msg.value, sender, data, human_readable]
+        if to_fee_type(msg.tx_type) == TX_TYPE_PARTIAL_FEE_DELEGATION:
+            attributes.append(msg.fee_ratio)
+        attributes.append(msg.code_format)
 
+    # TxTypeCancel(0x38)
+    elif basic_type == 0x38:
+        attributes.append(sender)
+        if to_fee_type(msg.tx_type) == TX_TYPE_PARTIAL_FEE_DELEGATION:
+            attributes.append(msg.fee_ratio)
+
+    # not supported tx type
     else:
-        basic_type = to_basic_type(msg.tx_type)
-        attributes = [msg.tx_type, msg.nonce, msg.gas_price, msg.gas_limit]
+        raise wire.DataError("Not supported transaction type")
 
-        # TxTypeValueTransfer(0x08)
-        if basic_type == 0x08:
-            attributes += [recipient, msg.value, sender_address]
-            if to_fee_type(msg.tx_type) == TX_TYPE_PARTIAL_FEE_DELEGATION:
-                attributes.append(msg.fee_ratio)
-
-        # TxTypeValueTransferMemo(0x10), TxTypeSmartContractExecution(0x30)
-        elif basic_type == 0x10 or basic_type == 0x30:
-            attributes += [recipient, msg.value, sender_address, data]
-            if to_fee_type(msg.tx_type) == TX_TYPE_PARTIAL_FEE_DELEGATION:
-                attributes.append(msg.fee_ratio)
-
-        # TxTypeSmartContractDeploy(0x28)
-        elif basic_type == 0x28:
-            human_readable = 0x00
-            if msg.human_readable:
-                human_readable = 0x01
-            attributes += [recipient, msg.value, sender_address, data, human_readable]
-            if to_fee_type(msg.tx_type) == TX_TYPE_PARTIAL_FEE_DELEGATION:
-                attributes.append(msg.fee_ratio)
-            attributes.append(msg.code_format)
-
-        # TxTypeCancel(0x38)
-        elif basic_type == 0x38:
-            attributes.append(sender_address)
-            if to_fee_type(msg.tx_type) == TX_TYPE_PARTIAL_FEE_DELEGATION:
-                attributes.append(msg.fee_ratio)
-
-        # not supported tx type
-        else:
-            raise wire.DataError("Not supported transaction type")
-
-        encoded_out = rlp.encode(attributes)
-        sha.extend(rlp.encode([encoded_out, msg.chain_id, 0, 0], True))
+    print(attributes)
+    encoded_out = rlp.encode(attributes)
+    sha.extend(rlp.encode([encoded_out, fee_payer_address, msg.chain_id, 0, 0], True))
 
     digest = sha.get_digest()
     result = sign_digest(msg, keychain, digest)
 
     return result
+
 
 def get_total_length(msg: KlaytnSignTx, data_total: int) -> int:
     length = 0

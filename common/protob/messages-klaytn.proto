@@ -59,18 +59,44 @@ message KlaytnAddress {
 
 message KlaytnSignTx {
     repeated uint32 address_n = 1;          // BIP-32 path to derive the key from master node
-    optional bytes nonce = 2;               // <=256 bit unsigned big endian
-    optional bytes gas_price = 3;           // <=256 bit unsigned big endian (in peb)
-    optional bytes gas_limit = 4;           // <=256 bit unsigned big endian
-    optional bytes tx_type = 5;             // <=256 bit unsigned big endian
-    optional bytes value = 6;               // <=256 bit unsigned big endian (in peb)
-    optional bytes data_initial_chunk = 7;  // The initial data chunk (<= 1024 bytes)
-    optional uint32 data_length = 8;        // Length of transaction payload
-    optional uint32 code_format = 9;
-    optional uint32 chain_id = 10;          // Chain Id (default 8217)
-    optional uint32 fee_ratio = 11;         // valid range (1 ~ 99)
-    optional string to = 12;                // recipient address
-    optional bool human_readable = 13;
+    optional bytes nonce = 3;               // <=256 bit unsigned big endian
+    optional bytes gas_price = 4;           // <=256 bit unsigned big endian (in peb)
+    optional bytes gas_limit = 5;           // <=256 bit unsigned big endian
+    optional bytes tx_type = 6;             // <=256 bit unsigned big endian
+    optional bytes value = 7;               // <=256 bit unsigned big endian (in peb)
+    optional bytes data_initial_chunk = 8;  // The initial data chunk (<= 1024 bytes)
+    optional uint32 data_length = 9;        // Length of transaction payload
+    optional uint32 code_format = 10;
+    optional uint32 chain_id = 11;          // Chain Id (default 8217)
+    optional uint32 fee_ratio = 12;         // valid range (1 ~ 99)
+    optional string to = 13;                // recipient address
+    optional bool human_readable = 14;
+}
+
+/**
+ * Request: Ask device to sign transaction
+ * All fields are optional from the protocol's point of view. Each field defaults to value `0` if missing.
+ * Note: the first at most 1024 bytes of data MUST be transmitted as part of this message.
+ * @start
+ * @next KlaytnTxRequest
+ * @next Failure
+ */
+
+message KlaytnSignTxAsFeePayer {
+    repeated uint32 address_n = 1;          // BIP-32 path to derive the key from master node
+    optional bytes sender = 2;                // tx sender's address
+    optional bytes nonce = 3;               // <=256 bit unsigned big endian
+    optional bytes gas_price = 4;           // <=256 bit unsigned big endian (in peb)
+    optional bytes gas_limit = 5;           // <=256 bit unsigned big endian
+    optional bytes tx_type = 6;             // <=256 bit unsigned big endian
+    optional bytes value = 7;               // <=256 bit unsigned big endian (in peb)
+    optional bytes data_initial_chunk = 8;  // The initial data chunk (<= 1024 bytes)
+    optional uint32 data_length = 9;        // Length of transaction payload
+    optional uint32 code_format = 10;
+    optional uint32 chain_id = 11;          // Chain Id (default 8217)
+    optional uint32 fee_ratio = 12;         // valid range (1 ~ 99)
+    optional string to = 13;                // recipient address
+    optional bool human_readable = 14;
 }
 
 /**

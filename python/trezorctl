@@ -1937,6 +1937,9 @@ KLAY_BASIC_TX_TYPE = {
     'cancel': 56
 }
 
+def to_fee_type(tx_type):
+    return tx_type[0]%8
+
 def klaytn_to_basic_type(value):
     return value[0] & ~((1 << 3) -1)
 
@@ -2188,14 +2191,244 @@ def klaytn_sign_tx(
         click.echo("Not supported transaction type")
         sys.exit(1)
 
+    if to_fee_type(tx_type) == 0:
+        tx_hex = "0x%s" % transaction.hex()
+        # if publish:
+        #     tx_hash = w3.eth.sendRawTransaction(tx_hex).hex()
+        #     return "Transaction published with ID: %s" % tx_hash
+        # else:
+        return "Sender signed raw transaction:\n%s" % tx_hex
+
+    return "RLP encoded sender signature:\n" + "0x" + rlp.encode((sig,)).hex()
+
+
+@cli.command()
+@click.option(
+    "-n",
+    "--address",
+    required=True,
+    help="BIP-32 path to source address, e.g., m/44'/8217'/0'/0/0",
+)
+@click.option(
+    "-i", "--nonce", type=int, help="Transaction counter (required for offline signing)"
+)
+@click.option(
+    "-p",
+    "--gas-price",
+    help="Gas price (required for offline signing)",
+    callback=klaytn_amount_to_int,
+)
+@click.option(
+    "-g", "--gas-limit", type=int, help="Gas limit (required for offline signing)"
+)
+@click.option("-k", "--amount", help="Amount of sending KLAY", callback=klaytn_amount_to_int)
+@click.option("-a", "--to-address", help="Recipient address")
+@click.option("-x", "--tx-type", help="Klaytn Transaction type")
+@click.option("-h", "--human-readable", type=bool, help="'True' if the new address is human-readable address")
+@click.option("-v", "--code-format", type=int, help="The code format of smart contract code (EVM: 0).")
+@click.option("-d", "--data", help="Data as hex string, e.g. 0x12345678")
+@click.option("-r", "--fee-ratio", type=int, help="Fee ratio of fee payer, e.g. 30 (fee payer will pay 30% of transaction fee)")
+@click.option(
+    "-c", "--chain-id", type=int, default=8217, help="Klaytn Chain ID (default: 8217 for Cypress Network)"
+)
+@click.option("-s", "--sender", help="Sender of the transaction")
+@click.option("-z", "--sender-sig", help="RLP encoded signature(s) of the sender")
+# @click.option("-p", "--publish", is_flag=True, help="Publish transaction via RPC") #TODO connect to EN
+# @click.option("-x", "--tx-type", type=int, help="TX type (used only for Wanchain)")
+# @click.option("-t", "--token", help="ERC20 token address") #TODO ERC20
+@click.option(
+    "--list-units",
+    is_flag=True,
+    help="List known currency units and exit.",
+    is_eager=True,
+    callback=klaytn_list_units,
+    expose_value=False,
+)
+@click.pass_obj
+def klaytn_sign_tx_as_fee_payer(
+        connect,
+        address,
+        sender,
+        nonce,
+        gas_price,
+        gas_limit,
+        amount,
+        to_address,
+        tx_type,
+        human_readable,
+        code_format,
+        data,
+        fee_ratio,
+        chain_id,
+        sender_sig,
+):
+    """Sign (and optionally publish) Klaytn transaction as a fee payer.
+
+    Since each transaction type requires different options,
+    you should specify proper options and their values for the signing transaction.
+
+
+    For example, TxTypeLegacyTransaction requires BIP-32 path, to address, value, nonce, gas price, gas limit, and chain id.
+
+    ./trezorctl klaytn-sign-tx -n "m/44'/8217'/0'/0/0" -a 0x543e4c75fee03eac6208685615717c41de221854 -k 1 -i 0 -p 25000000000 -g 10000000 -c 1
+
+
+    You can specify AMOUNT and gas price either as a number of peb,
+    or you can use a unit suffix.
+
+
+    Use the --list-units option to show all known currency units.
+    ERC20 token amounts are specified in KLAY/peb, custom units are not supported.
+
+
+    If any of gas price, gas limit and nonce is not specified, this command will
+    try to connect to an klaytn node and auto-fill these values. You can configure
+    the connection with CAVER_PROVIDER_URI environment variable.
+
+    To send an ERC20 token, specify a contract address with the --token option.
+
+
+    For more detail, see https://github.com/aidan-kwon/klaytn-docs-dev/blob/gitbook-aidan-trezor/docs/toolkit/trezor.md
+    """
+    if not KLAYTN_SIGN_TX:
+        click.echo("Klaytn requirements not installed.")
+        click.echo("Please run:")
+        click.echo()
+        click.echo("  pip install web3 rlp") # TODO caver
+        sys.exit(1)
+
+    # TODO replace web3 to caver-js to connect to EN
+    w3 = web3.Web3()
+    if (
+            gas_price is None or gas_limit is None or nonce is None #or publish
+    ) and not w3.isConnected():
+        click.echo("Failed to connect to Klaytn node.")
+        click.echo(
+            "If you want to sign offline, make sure you provide --gas-price, "
+            "--gas-limit and --nonce arguments"
+        )
+        sys.exit(1)
+
+    # if data is not None and token is not None:
+    #     click.echo("Can't send tokens and custom data at the same time")
+    #     sys.exit(1)
+
+    client = connect()
+    address_n = tools.parse_path(address)
+    fee_payer_address = klaytn.get_address(client, address_n)
+    fee_payer_address = klaytn_decode_hex(fee_payer_address)
+
+    sender_address = klaytn_decode_hex(sender)
+    sender_sig = klaytn_decode_hex(sender_sig)
+    sender_sig = rlp.decode(sender_sig)
+
+    if chain_id is None:
+        chain_id = 8217
+
+    if nonce is None:
+        nonce = w3.eth.getTransactionCount(sender_address)
+
+    if gas_price is None:
+        gas_price = w3.eth.gasPrice
+
+    if gas_limit is None:
+        gas_limit = w3.eth.estimateGas(
+            {
+                "to": to_address,
+                "from": sender_address,
+                "value": amount,
+                "data": "0x%s" % data.hex(),
+            }
+        )
+
+    if to_address is not None:
+        to = klaytn_decode_hex(to_address)
+    else:
+        # if tx_type == b'\x28':
+        to = to_address = b''
+
+    if tx_type is None:
+        click.echo("Only fee delegation type transactions can be signed by a fee payer")
+        sys.exit(1)
+
+    tx_type = klaytn_decode_hex(tx_type)
+    if to_fee_type(tx_type) == 0:
+        click.echo("Only fee delegation type transactions can be signed by a fee payer")
+        sys.exit(1)
+
+
+    # TODO ERC20
+    # if token:
+    #     data = klaytn_erc20_contract(w3, token, to_address, amount)
+    #     to_address = token
+    #     amount = 0
+
+    if data:
+        data = klaytn_decode_hex(data)
+
+    else:
+        data = b""
+
+    sender = klaytn_decode_hex(sender)
+
+
+    fee_payer_sig = klaytn.sign_tx_as_fee_payer(
+        client,
+        n=address_n,
+        sender=sender,
+        nonce=nonce,
+        gas_price=gas_price,
+        gas_limit=gas_limit,
+        value=amount,
+        to=to_address,
+        tx_type=tx_type,
+        data=data,
+        human_readable=human_readable,
+        code_format=code_format,
+        chain_id=chain_id,
+        fee_ratio=fee_ratio,
+    )
+
+    fee_payer_sig = (fee_payer_sig[0], fee_payer_sig[1].lstrip(b'\x00'), fee_payer_sig[2].lstrip(b'\x00'))
+
+    if klaytn_to_basic_type(tx_type) == KLAY_BASIC_TX_TYPE['value_transfer']:
+        transaction = tx_type + rlp.encode([nonce, gas_price, gas_limit, to, amount, sender_address, sender_sig, fee_payer_address, (fee_payer_sig,)])
+        if fee_ratio is not None:
+            transaction = tx_type + rlp.encode([nonce, gas_price, gas_limit, to, amount, sender_address, fee_ratio, sender_sig, fee_payer_address, (fee_payer_sig,)])
+
+    elif klaytn_to_basic_type(tx_type) == KLAY_BASIC_TX_TYPE['value_transfer_memo']:
+        transaction = tx_type + rlp.encode([nonce, gas_price, gas_limit, to, amount, sender_address, data, sender_sig, fee_payer_address, (fee_payer_sig,)])
+        if fee_ratio is not None:
+            transaction = tx_type + rlp.encode([nonce, gas_price, gas_limit, to, amount, sender_address, data, fee_ratio, sender_sig, fee_payer_address, (fee_payer_sig,)])
+
+    elif klaytn_to_basic_type(tx_type) == KLAY_BASIC_TX_TYPE['smart_contract_deploy']:
+        transaction = tx_type + rlp.encode([nonce, gas_price, gas_limit, to, amount, sender_address, data, human_readable, code_format, sender_sig, fee_payer_address, (fee_payer_sig,)])
+        if fee_ratio is not None:
+            transaction = tx_type + rlp.encode([nonce, gas_price, gas_limit, to, amount, sender_address, data, human_readable, fee_ratio, code_format, sender_sig, fee_payer_address, (fee_payer_sig,)])
+
+    elif klaytn_to_basic_type(tx_type) == KLAY_BASIC_TX_TYPE['smart_contract_execution']:
+        transaction = tx_type + rlp.encode([nonce, gas_price, gas_limit, to, amount, sender_address, data, sender_sig, fee_payer_address, (fee_payer_sig,)])
+        if fee_ratio is not None:
+            transaction = tx_type + rlp.encode([nonce, gas_price, gas_limit, to, amount, sender_address, data, fee_ratio, sender_sig, fee_payer_address, (fee_payer_sig,)])
+
+    elif klaytn_to_basic_type(tx_type) == KLAY_BASIC_TX_TYPE['cancel']:
+        transaction = tx_type + rlp.encode([nonce, gas_price, gas_limit, sender_address, sender_sig, fee_payer_address, (fee_payer_sig,)])
+        if fee_ratio is not None:
+            transaction = tx_type + rlp.encode([nonce, gas_price, gas_limit, sender_address, fee_ratio, sender_sig, fee_payer_address, (fee_payer_sig,)])
+
+    else:
+        click.echo("Not supported transaction type")
+        sys.exit(1)
+
+    print(fee_payer_sig[0], fee_payer_sig[1].hex(), fee_payer_sig[2].hex())
+
     tx_hex = "0x%s" % transaction.hex()
 
     # if publish:
     #     tx_hash = w3.eth.sendRawTransaction(tx_hex).hex()
     #     return "Transaction published with ID: %s" % tx_hash
     # else:
-    return "Signed raw transaction:\n%s" % tx_hex
-
+    return "Fee payer signed raw transaction:\n%s" % tx_hex
 
 
 #

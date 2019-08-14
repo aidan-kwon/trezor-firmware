@@ -244,9 +244,10 @@ enum MessageType {
     MessageType_KlaytnGetAddress = 856 [(wire_in) = true];
     MessageType_KlaytnAddress = 857 [(wire_out) = true];
     MessageType_KlaytnSignTx = 858 [(wire_in) = true];
-    MessageType_KlaytnTxRequest = 859 [(wire_out) = true];
-    MessageType_KlaytnTxAck = 860 [(wire_in) = true];
-    MessageType_KlaytnSignMessage = 864 [(wire_in) = true];
-    MessageType_KlaytnVerifyMessage = 865 [(wire_in) = true];
-    MessageType_KlaytnMessageSignature = 866 [(wire_out) = true];
+    MessageType_KlaytnSignTxAsFeePayer = 859 [(wire_in) = true];
+    MessageType_KlaytnTxRequest = 860 [(wire_out) = true];
+    MessageType_KlaytnTxAck = 861 [(wire_in) = true];
+    MessageType_KlaytnSignMessage = 862 [(wire_in) = true];
+    MessageType_KlaytnVerifyMessage = 863 [(wire_in) = true];
+    MessageType_KlaytnMessageSignature = 864 [(wire_out) = true];
 }

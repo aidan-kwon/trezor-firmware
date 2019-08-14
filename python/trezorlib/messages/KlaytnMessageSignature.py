@@ -4,7 +4,7 @@ from .. import protobuf as p
 
 
 class KlaytnMessageSignature(p.MessageType):
-    MESSAGE_WIRE_TYPE = 866
+    MESSAGE_WIRE_TYPE = 864
 
     def __init__(
         self,

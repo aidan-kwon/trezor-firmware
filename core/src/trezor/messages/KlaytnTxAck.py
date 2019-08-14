@@ -4,7 +4,7 @@ import protobuf as p
 
 
 class KlaytnTxAck(p.MessageType):
-    MESSAGE_WIRE_TYPE = 860
+    MESSAGE_WIRE_TYPE = 861
 
     def __init__(
         self,
